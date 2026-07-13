@@ -17,18 +17,21 @@
 
     <aside class="w-64 bg-gray-900 text-white flex flex-col shadow-lg">
         <div class="p-6 text-center border-b border-gray-700">
-            <h1 class="text-2xl font-bold text-blue-400">NIWASA CONSTRUCTIONS (PVT) LTD</h1>
-            <p class="text-sm text-gray-400">SITE COST & ITEM CONTROLLING SYSTEM</p>
+            <h1 class="text-2xl font-bold text-blue-400">NIWASA</h1>
+            <p class="text-xs text-gray-400">CONSTRUCTIONS (PVT) LTD</p>
         </div>
         <nav class="flex-1 px-4 py-6 space-y-2">
             <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item active w-full flex items-center p-3 rounded-lg hover:bg-gray-800 transition">
-                <i class="fas fa-chart-line w-6"></i> <span>Dashboard</span>
+                <i class="fas fa-chart-line w-6"></i> <span class="ml-2">Dashboard</span>
+            </button>
+            <button onclick="switchTab('sites')" id="nav-sites" class="nav-item w-full flex items-center p-3 rounded-lg hover:bg-gray-800 transition">
+                <i class="fas fa-building w-6"></i> <span class="ml-2">Manage Sites</span>
             </button>
             <button onclick="switchTab('expenses')" id="nav-expenses" class="nav-item w-full flex items-center p-3 rounded-lg hover:bg-gray-800 transition">
-                <i class="fas fa-wallet w-6"></i> <span>Site Expenses</span>
+                <i class="fas fa-wallet w-6"></i> <span class="ml-2">Site Expenses</span>
             </button>
             <button onclick="switchTab('inventory')" id="nav-inventory" class="nav-item w-full flex items-center p-3 rounded-lg hover:bg-gray-800 transition">
-                <i class="fas fa-tools w-6"></i> <span>Inventory & Tools</span>
+                <i class="fas fa-tools w-6"></i> <span class="ml-2">Inventory & Tools</span>
             </button>
         </nav>
         <div class="p-4 text-xs text-gray-500 text-center border-t border-gray-700">
@@ -56,7 +59,7 @@
                     </div>
                     <div class="bg-white rounded-xl shadow p-6 border-l-4 border-green-500">
                         <h3 class="text-gray-500 text-sm">Active Sites</h3>
-                        <p class="text-3xl font-bold text-gray-800 mt-2">4</p>
+                        <p class="text-3xl font-bold text-gray-800 mt-2" id="active-sites-lbl">0</p>
                     </div>
                     <div class="bg-white rounded-xl shadow p-6 border-l-4 border-orange-500">
                         <h3 class="text-gray-500 text-sm">Total Inventory Items</h3>
@@ -65,7 +68,49 @@
                 </div>
                 <div class="bg-white rounded-xl shadow p-6">
                     <h3 class="text-lg font-semibold mb-4">Welcome to Niwasa ERP</h3>
-                    <p class="text-gray-600">Use the sidebar to navigate to Expenses and Inventory management. The system is designed for office use only, with real-time updates.</p>
+                    <p class="text-gray-600">Use the sidebar to navigate to Sites, Expenses, and Inventory management.</p>
+                </div>
+            </div>
+
+            <div id="sites" class="tab-content">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="bg-white rounded-xl shadow p-6 lg:col-span-1 h-fit">
+                        <h3 class="text-lg font-semibold mb-4 border-b pb-2"><i class="fas fa-plus-circle text-green-500 mr-2"></i>Add New Site</h3>
+                        <form id="siteForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Site Name</label>
+                                <input type="text" id="siteName" required class="mt-1 w-full p-2 border rounded focus:ring-green-500 focus:border-green-500" placeholder="e.g. Kottawa Villa">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Location</label>
+                                <input type="text" id="siteLocation" required class="mt-1 w-full p-2 border rounded focus:ring-green-500 focus:border-green-500" placeholder="e.g. Kottawa">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Start Date</label>
+                                <input type="date" id="siteStartDate" required class="mt-1 w-full p-2 border rounded focus:ring-green-500 focus:border-green-500">
+                            </div>
+                            <button type="submit" class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded hover:bg-green-700 transition">Save Site</button>
+                        </form>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow p-6 lg:col-span-2">
+                        <h3 class="text-lg font-semibold mb-4 border-b pb-2"><i class="fas fa-building text-green-500 mr-2"></i>All Projects / Sites</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-100 text-gray-600 text-sm">
+                                        <th class="p-3 border-b">Site Name</th>
+                                        <th class="p-3 border-b">Location</th>
+                                        <th class="p-3 border-b">Start Date</th>
+                                        <th class="p-3 border-b">Status</th>
+                                        <th class="p-3 border-b text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sitesTableBody" class="text-sm text-gray-700">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -75,8 +120,10 @@
                         <h3 class="text-lg font-semibold mb-4 border-b pb-2"><i class="fas fa-plus-circle text-blue-500 mr-2"></i>Add New Expense</h3>
                         <form id="expenseForm" class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Site Name</label>
-                                <input type="text" id="expSite" required class="mt-1 w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500" placeholder="e.g. Kottawa Project">
+                                <label class="block text-sm font-medium text-gray-700">Select Site</label>
+                                <select id="expSite" required class="mt-1 w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="" disabled selected>Loading sites...</option>
+                                </select>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Date</label>
@@ -199,6 +246,7 @@
             
             const titles = {
                 'dashboard': 'Dashboard',
+                'sites': 'Manage Construction Sites',
                 'expenses': 'Site Expenses Management',
                 'inventory': 'Inventory & Tools Tracking'
             };
@@ -236,6 +284,7 @@
         }
         
         // Set today's date as default for date inputs
+        document.getElementById('siteStartDate').valueAsDate = new Date();
         document.getElementById('expDate').valueAsDate = new Date();
         document.getElementById('itemDate').valueAsDate = new Date();
     </script>
