@@ -209,19 +209,19 @@
                             </form>
                         </div>
                         <div class="bg-white rounded-xl shadow-sm p-6 xl:col-span-2 border border-gray-100">
-                            <h3 class="text-lg font-bold mb-4 border-b pb-2 text-gray-700">Recent Transactions</h3>
+                            <h3 class="text-lg font-bold mb-4 border-b pb-2 text-gray-700">Recent Transactions (Grouped by Site)</h3>
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left border-collapse">
                                     <thead>
                                         <tr class="bg-gray-50 text-gray-600 text-sm border-y">
-                                            <th class="p-3">Date</th>
-                                            <th class="p-3">Site & Details</th>
+                                            <th class="p-3 pl-6">Date</th>
+                                            <th class="p-3">Details & Category</th>
                                             <th class="p-3 text-right">Amount (Rs.)</th>
                                             <th class="p-3 text-center">Receipt</th>
                                             <th class="p-3 text-center">Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="expensesTableBody" class="text-sm text-gray-700 divide-y divide-gray-100"></tbody>
+                                    <tbody id="expensesTableBody" class="text-sm text-gray-700"></tbody>
                                 </table>
                             </div>
                         </div>
@@ -346,19 +346,19 @@
                             </form>
                         </div>
                         <div class="bg-white rounded-xl shadow-sm p-6 xl:col-span-2 border border-gray-100">
-                            <h3 class="text-lg font-bold mb-4 border-b pb-2 text-gray-700">Master Inventory List</h3>
+                            <h3 class="text-lg font-bold mb-4 border-b pb-2 text-gray-700">Master Inventory List (Grouped)</h3>
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left border-collapse">
                                     <thead>
                                         <tr class="bg-gray-50 text-gray-600 text-sm border-y">
-                                            <th class="p-3">Item ID</th>
+                                            <th class="p-3 pl-6">Item ID</th>
                                             <th class="p-3">Name</th>
                                             <th class="p-3">Current Location</th>
                                             <th class="p-3">Status</th>
                                             <th class="p-3 text-center">Manage</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="inventoryTableBody" class="text-sm text-gray-700 divide-y divide-gray-100"></tbody>
+                                    <tbody id="inventoryTableBody" class="text-sm text-gray-700"></tbody>
                                 </table>
                             </div>
                         </div>
@@ -377,8 +377,7 @@
             </div>
             <div class="p-6 max-h-[60vh] overflow-y-auto">
                 <h4 id="historyItemName" class="font-bold text-blue-600 text-xl mb-4 text-center"></h4>
-                <ul id="historyList" class="space-y-4 relative border-l-2 border-gray-200 ml-3">
-                    </ul>
+                <ul id="historyList" class="space-y-4 relative border-l-2 border-gray-200 ml-3"></ul>
                 <p id="historyEmpty" class="text-center text-gray-500 hidden">No movement history available for this item.</p>
             </div>
         </div>
@@ -447,9 +446,7 @@
             }
         }
         
-        function closeHistoryModal() {
-            document.getElementById('historyModal').classList.add('hidden');
-        }
+        function closeHistoryModal() { document.getElementById('historyModal').classList.add('hidden'); }
 
         document.getElementById('siteStartDate').valueAsDate = new Date();
         document.getElementById('expDate').valueAsDate = new Date();
