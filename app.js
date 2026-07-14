@@ -1,10 +1,9 @@
 /*
- * Niwasa Constructions ERP - Advanced Logic
+ * Niwasa Constructions ERP - Advanced Logic with Reports & Auto Code
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, updateDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
-// Import Auth
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -19,332 +18,291 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-
-// ImgBB API Key
 const IMGBB_API_KEY = "4d99a2396623c2d301a6e8233f352ba7";
 
-// ==========================================
-// AUTHENTICATION (Login System)
-// ==========================================
-const loginScreen = document.getElementById('login-screen');
-const mainApp = document.getElementById('main-app');
-const loginForm = document.getElementById('loginForm');
-const logoutBtn = document.getElementById('logoutBtn');
-const currentUserEmail = document.getElementById('currentUserEmail');
-const loginBtn = document.getElementById('loginBtn');
-const loginError = document.getElementById('loginError');
+// Global Arrays to store data for Reports
+let allExpenses = []; 
+let allSites = [];
 
-// Listen for auth state
+// ==========================================
+// AUTHENTICATION
+// ==========================================
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        // Logged in
-        loginScreen.classList.add('hidden');
-        mainApp.classList.remove('hidden');
-        currentUserEmail.innerText = user.email;
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
+        document.getElementById('currentUserEmail').innerText = user.email;
     } else {
-        // Logged out
-        loginScreen.classList.remove('hidden');
-        mainApp.classList.add('hidden');
+        document.getElementById('login-screen').classList.remove('hidden');
+        document.getElementById('main-app').classList.add('hidden');
     }
 });
 
-// Login Form Submit
-loginForm.addEventListener('submit', async (e) => {
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
-    
-    loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    loginError.classList.add('hidden');
-
+    const btn = document.getElementById('loginBtn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     try {
-        await signInWithEmailAndPassword(auth, email, password);
-        loginForm.reset();
+        await signInWithEmailAndPassword(auth, document.getElementById('loginEmail').value, document.getElementById('loginPassword').value);
+        e.target.reset();
     } catch (error) {
-        loginError.innerText = "Invalid credentials. Please try again.";
-        loginError.classList.remove('hidden');
-    } finally {
-        loginBtn.innerHTML = '<span>Sign In</span>';
-    }
+        const err = document.getElementById('loginError');
+        err.innerText = "Invalid credentials."; err.classList.remove('hidden');
+    } finally { btn.innerHTML = '<span>Sign In</span>'; }
 });
-
-// Logout
-logoutBtn.addEventListener('click', () => {
-    signOut(auth);
-});
+document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
 
 
 // ==========================================
-// MASTER ITEM CATEGORIES (New Feature)
+// SITES MANAGEMENT
 // ==========================================
-const masterItemForm = document.getElementById('masterItemForm');
-const masterItemsTableBody = document.getElementById('masterItemsTableBody');
-const itemTypeSelect = document.getElementById('itemTypeSelect'); // In Inventory Tab
-
-let globalCategories = []; // Keep in memory to use when adding items
-
-masterItemForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const data = {
-        name: document.getElementById('masterItemName').value,
-        prefix: document.getElementById('masterItemPrefix').value.toUpperCase(),
-        createdAt: serverTimestamp()
-    };
-
-    try {
-        await addDoc(collection(db, "itemCategories"), data);
-        masterItemForm.reset();
-        alert('Category Created!');
-    } catch (error) {
-        console.error(error);
-        alert('Error saving category.');
-    }
-});
-
-// Listen to Item Categories
-onSnapshot(query(collection(db, "itemCategories"), orderBy("name", "asc")), (snapshot) => {
-    masterItemsTableBody.innerHTML = '';
-    itemTypeSelect.innerHTML = '<option value="" disabled selected>Select Item Category</option>';
-    globalCategories = [];
-
-    snapshot.forEach((docRef) => {
-        const data = docRef.data();
-        globalCategories.push(data);
-        
-        // Update Table
-        masterItemsTableBody.innerHTML += `
-            <tr class="hover:bg-gray-50 transition">
-                <td class="p-3 font-medium text-gray-800">${data.name}</td>
-                <td class="p-3"><span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded font-bold">${data.prefix}</span></td>
-            </tr>
-        `;
-        
-        // Update Dropdown in Inventory Tab
-        itemTypeSelect.innerHTML += `<option value="${data.prefix}">${data.name} (${data.prefix})</option>`;
-    });
-});
-
-
-// ==========================================
-// SITES MANAGEMENT (Unchanged)
-// ==========================================
-const siteForm = document.getElementById('siteForm');
-const sitesTableBody = document.getElementById('sitesTableBody');
-const activeSitesLbl = document.getElementById('active-sites-lbl');
 const expSiteSelect = document.getElementById('expSite');
+const reportSiteSelect = document.getElementById('reportSiteSelect'); // New select for reports
 
-siteForm.addEventListener('submit', async (e) => {
+document.getElementById('siteForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const siteData = {
+    await addDoc(collection(db, "sites"), {
         name: document.getElementById('siteName').value,
         location: document.getElementById('siteLocation').value,
         startDate: document.getElementById('siteStartDate').value,
-        status: 'Active',
-        createdAt: serverTimestamp()
-    };
-    try {
-        await addDoc(collection(db, "sites"), siteData);
-        siteForm.reset();
-        document.getElementById('siteStartDate').valueAsDate = new Date();
-    } catch (error) { alert('Error adding site.'); }
+        status: 'Active', createdAt: serverTimestamp()
+    });
+    e.target.reset(); document.getElementById('siteStartDate').valueAsDate = new Date();
 });
 
 onSnapshot(query(collection(db, "sites"), orderBy("createdAt", "desc")), (snapshot) => {
-    sitesTableBody.innerHTML = '';
+    const tbody = document.getElementById('sitesTableBody');
+    tbody.innerHTML = '';
     expSiteSelect.innerHTML = '<option value="" disabled selected>Select Site</option>';
+    reportSiteSelect.innerHTML = '<option value="" disabled selected>Select a Site...</option>'; // Report Dropdown
     let activeCount = 0;
     
+    allSites = []; // Clear array
+
     snapshot.forEach((docRef) => {
         const data = docRef.data();
+        allSites.push(data.name); // Add for report usage
+
+        // Populate Dropdowns
+        reportSiteSelect.innerHTML += `<option value="${data.name}">${data.name} (${data.status})</option>`;
         if (data.status === 'Active') {
             activeCount++;
             expSiteSelect.innerHTML += `<option value="${data.name}">${data.name} (${data.location})</option>`;
         }
         
-        const statusBadge = data.status === 'Active' 
-            ? `<span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Active</span>`
-            : `<span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded">Completed</span>`;
-
-        const actionBtn = data.status === 'Active'
-            ? `<button onclick="markSiteCompleted('${docRef.id}')" class="text-xs bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-1 px-3 rounded transition">Mark Completed</button>`
-            : `<span class="text-xs text-gray-400">Done</span>`;
-        
-        sitesTableBody.innerHTML += `
+        tbody.innerHTML += `
             <tr class="hover:bg-gray-50 transition">
                 <td class="p-3 font-medium text-gray-900">${data.name}</td>
                 <td class="p-3 text-gray-600">${data.location}</td>
                 <td class="p-3">${data.startDate}</td>
-                <td class="p-3">${statusBadge}</td>
-                <td class="p-3 text-center">${actionBtn}</td>
+                <td class="p-3">${data.status === 'Active' ? `<span class="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded">Active</span>` : `<span class="bg-gray-100 text-gray-800 text-xs px-2.5 py-0.5 rounded">Completed</span>`}</td>
+                <td class="p-3 text-center">${data.status === 'Active' ? `<button onclick="markSiteCompleted('${docRef.id}')" class="text-xs bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-1 px-3 rounded">Mark Completed</button>` : `<span class="text-xs text-gray-400">Done</span>`}</td>
             </tr>
         `;
     });
-    activeSitesLbl.innerText = activeCount;
+    document.getElementById('active-sites-lbl').innerText = activeCount;
 });
-
-window.markSiteCompleted = async function(docId) {
-    if(confirm("Mark this site as Completed?")) {
-        await updateDoc(doc(db, "sites", docId), { status: "Completed" });
-    }
-};
+window.markSiteCompleted = async (id) => { if(confirm("Mark site as Completed?")) await updateDoc(doc(db, "sites", id), { status: "Completed" }); };
 
 
 // ==========================================
-// EXPENSES & IMGBB INTEGRATION
+// EXPENSES MANAGEMENT
 // ==========================================
-const expenseForm = document.getElementById('expenseForm');
-const expensesTableBody = document.getElementById('expensesTableBody');
-const totalExpensesLbl = document.getElementById('total-expenses-lbl');
 const expSubmitBtn = document.getElementById('expSubmitBtn');
-
-expenseForm.addEventListener('submit', async (e) => {
+document.getElementById('expenseForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    expSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
-    expSubmitBtn.disabled = true;
-
+    expSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...'; expSubmitBtn.disabled = true;
     try {
         let category = document.getElementById('expCategory').value;
         if (category === 'Other') category = document.getElementById('expCustomCategory').value;
-        
         let receiptUrl = null;
-        
-        // Handle Image Upload to ImgBB
         const fileInput = document.getElementById('expReceipt');
         if (fileInput.files.length > 0) {
-            const formData = new FormData();
-            formData.append("image", fileInput.files[0]);
-            
-            const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-                method: "POST",
-                body: formData
-            });
-            const imgbbData = await response.json();
-            if(imgbbData.success) {
-                receiptUrl = imgbbData.data.display_url;
-            }
+            const formData = new FormData(); formData.append("image", fileInput.files[0]);
+            const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: "POST", body: formData });
+            const imgbbData = await res.json(); if(imgbbData.success) receiptUrl = imgbbData.data.display_url;
         }
-
-        const expenseData = {
-            siteName: document.getElementById('expSite').value,
-            date: document.getElementById('expDate').value,
-            category: category,
-            amount: parseFloat(document.getElementById('expAmount').value),
-            description: document.getElementById('expDesc').value,
-            receiptUrl: receiptUrl,
-            createdAt: serverTimestamp()
-        };
-
-        await addDoc(collection(db, "expenses"), expenseData);
-        expenseForm.reset();
-        document.getElementById('expDate').valueAsDate = new Date();
-        document.getElementById('customCategoryDiv').style.display = 'none';
-        
-    } catch (error) {
-        console.error(error);
-        alert('Error adding expense.');
-    } finally {
-        expSubmitBtn.innerHTML = '<span>Save Expense</span>';
-        expSubmitBtn.disabled = false;
-    }
+        await addDoc(collection(db, "expenses"), {
+            siteName: document.getElementById('expSite').value, date: document.getElementById('expDate').value,
+            category: category, amount: parseFloat(document.getElementById('expAmount').value),
+            description: document.getElementById('expDesc').value, receiptUrl: receiptUrl, createdAt: serverTimestamp()
+        });
+        e.target.reset(); document.getElementById('expDate').valueAsDate = new Date(); document.getElementById('customCategoryDiv').style.display = 'none';
+    } catch (error) { alert('Error adding expense.'); } finally { expSubmitBtn.innerHTML = '<span>Save Expense</span>'; expSubmitBtn.disabled = false; }
 });
 
 onSnapshot(query(collection(db, "expenses"), orderBy("createdAt", "desc")), (snapshot) => {
-    expensesTableBody.innerHTML = '';
+    const tbody = document.getElementById('expensesTableBody'); tbody.innerHTML = '';
     let total = 0;
+    
+    allExpenses = []; // Clear array for reports
+
     snapshot.forEach((docRef) => {
         const data = docRef.data();
+        allExpenses.push(data); // Push for report generation
         total += data.amount || 0;
         
-        const receiptBtn = data.receiptUrl 
-            ? `<a href="${data.receiptUrl}" target="_blank" class="text-blue-600 hover:text-blue-800 text-sm font-semibold"><i class="fas fa-file-image mr-1"></i> View</a>`
-            : `<span class="text-xs text-gray-400">No Bill</span>`;
-
-        expensesTableBody.innerHTML += `
+        const receiptBtn = data.receiptUrl ? `<a href="${data.receiptUrl}" target="_blank" class="text-blue-600 hover:text-blue-800 text-sm font-semibold"><i class="fas fa-file-image mr-1"></i> View</a>` : `<span class="text-xs text-gray-400">No Bill</span>`;
+        tbody.innerHTML += `
             <tr class="hover:bg-gray-50 transition">
                 <td class="p-3 text-gray-600 whitespace-nowrap">${data.date}</td>
-                <td class="p-3">
-                    <div class="font-medium text-gray-900">${data.siteName}</div>
-                    <div class="text-xs text-gray-500">${data.description}</div>
-                </td>
+                <td class="p-3"><div class="font-medium text-gray-900">${data.siteName}</div><div class="text-xs text-gray-500">${data.description}</div></td>
                 <td class="p-3"><span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${data.category}</span></td>
                 <td class="p-3 text-right font-bold text-gray-800">Rs. ${data.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                 <td class="p-3 text-center">${receiptBtn}</td>
             </tr>
         `;
     });
-    totalExpensesLbl.innerText = total.toLocaleString(undefined, {minimumFractionDigits: 2});
+    document.getElementById('total-expenses-lbl').innerText = total.toLocaleString(undefined, {minimumFractionDigits: 2});
 });
 
 
 // ==========================================
-// INVENTORY & ITEM STATUS
+// REPORTS GENERATION (NEW)
 // ==========================================
-const itemForm = document.getElementById('itemForm');
-const inventoryTableBody = document.getElementById('inventoryTableBody');
-const totalItemsLbl = document.getElementById('total-items-lbl');
+window.generateReport = function() {
+    const selectedSite = document.getElementById('reportSiteSelect').value;
+    if (!selectedSite) return alert("Please select a site first.");
 
+    // Filter expenses for this site
+    const siteExpenses = allExpenses.filter(exp => exp.siteName === selectedSite);
+    
+    let totalCost = 0;
+    let categorySummary = {};
+
+    const tableBody = document.getElementById('reportTableBody');
+    tableBody.innerHTML = '';
+
+    // Process each expense
+    siteExpenses.forEach(exp => {
+        totalCost += exp.amount;
+        
+        // Sum by category
+        if (categorySummary[exp.category]) {
+            categorySummary[exp.category] += exp.amount;
+        } else {
+            categorySummary[exp.category] = exp.amount;
+        }
+
+        // Add to detail table
+        tableBody.innerHTML += `
+            <tr class="hover:bg-gray-50 transition">
+                <td class="p-3 text-gray-600">${exp.date}</td>
+                <td class="p-3 font-semibold text-gray-700">${exp.category}</td>
+                <td class="p-3 text-gray-500">${exp.description || '-'}</td>
+                <td class="p-3 text-right font-medium text-gray-900">${exp.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+            </tr>
+        `;
+    });
+
+    // Populate UI
+    document.getElementById('reportEmptyState').classList.add('hidden');
+    document.getElementById('reportContent').classList.remove('hidden');
+    document.getElementById('printBtn').classList.remove('hidden');
+    
+    document.getElementById('reportSiteName').innerText = selectedSite;
+    document.getElementById('reportGenDate').innerText = new Date().toLocaleDateString() + ' at ' + new Date().toLocaleTimeString();
+    document.getElementById('reportTotalCost').innerText = totalCost.toLocaleString(undefined, {minimumFractionDigits: 2});
+
+    // Build Summary List
+    const summaryList = document.getElementById('reportSummaryList');
+    summaryList.innerHTML = '';
+    
+    if (Object.keys(categorySummary).length === 0) {
+        summaryList.innerHTML = '<li class="text-gray-400">No expenses recorded yet.</li>';
+        tableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-400">No data available</td></tr>';
+    } else {
+        // Sort categories by amount descending
+        const sortedCats = Object.entries(categorySummary).sort((a, b) => b[1] - a[1]);
+        
+        sortedCats.forEach(([cat, amount]) => {
+            const percentage = ((amount / totalCost) * 100).toFixed(1);
+            summaryList.innerHTML += `
+                <li class="flex justify-between items-center">
+                    <span><i class="fas fa-tag text-gray-400 mr-2 text-xs"></i>${cat}</span>
+                    <div class="text-right">
+                        <span class="font-bold text-gray-800">Rs. ${amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                        <span class="text-xs text-gray-500 ml-1">(${percentage}%)</span>
+                    </div>
+                </li>
+            `;
+        });
+    }
+};
+
+
+// ==========================================
+// MASTER ITEM CATEGORIES
+// ==========================================
+let globalCategories = [];
+document.getElementById('masterItemForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await addDoc(collection(db, "itemCategories"), {
+        name: document.getElementById('masterItemName').value,
+        prefix: document.getElementById('masterItemPrefix').value.toUpperCase(), // Auto-generated code from HTML
+        createdAt: serverTimestamp()
+    });
+    e.target.reset();
+});
+
+onSnapshot(query(collection(db, "itemCategories"), orderBy("name", "asc")), (snapshot) => {
+    const tbody = document.getElementById('masterItemsTableBody'); tbody.innerHTML = '';
+    const select = document.getElementById('itemTypeSelect'); select.innerHTML = '<option value="" disabled selected>Select Item Category</option>';
+    globalCategories = [];
+    snapshot.forEach((docRef) => {
+        const data = docRef.data(); globalCategories.push(data);
+        tbody.innerHTML += `<tr class="hover:bg-gray-50 transition"><td class="p-3 font-medium text-gray-800">${data.name}</td><td class="p-3"><span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded font-bold">${data.prefix}</span></td></tr>`;
+        select.innerHTML += `<option value="${data.prefix}">${data.name} (${data.prefix})</option>`;
+    });
+});
+
+
+// ==========================================
+// INVENTORY LOGIC
+// ==========================================
 async function generateItemID(prefix) {
     const qCount = query(collection(db, "inventory"), where("prefix", "==", prefix));
-    const querySnapshot = await getDocs(qCount);
-    // Simple logic for auto-increment. Note: In a highly concurrent app, a transaction is better.
-    const count = querySnapshot.size + 1; 
-    return `${prefix}-${count.toString().padStart(3, '0')}`;
+    const snapshot = await getDocs(qCount); return `${prefix}-${(snapshot.size + 1).toString().padStart(3, '0')}`;
 }
 
-itemForm.addEventListener('submit', async (e) => {
+document.getElementById('itemForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const prefix = itemTypeSelect.value;
+    const prefix = document.getElementById('itemTypeSelect').value;
     const cat = globalCategories.find(c => c.prefix === prefix);
-    
-    if(!cat) return alert("Please select a valid category");
-
-    const newItemID = await generateItemID(prefix);
-    const itemData = {
-        itemID: newItemID,
-        prefix: prefix,
-        name: cat.name,
+    if(!cat) return;
+    await addDoc(collection(db, "inventory"), {
+        itemID: await generateItemID(prefix), prefix: prefix, name: cat.name,
         purchasedDate: document.getElementById('itemDate').value,
         location: document.getElementById('itemLocation').value,
-        status: 'Active', // Default status: Active, Repair, Removed
-        createdAt: serverTimestamp()
-    };
-
-    try {
-        await addDoc(collection(db, "inventory"), itemData);
-        itemForm.reset();
-        document.getElementById('itemDate').valueAsDate = new Date();
-    } catch (error) {
-        alert('Error adding item.');
-    }
+        status: 'Active', createdAt: serverTimestamp()
+    });
+    e.target.reset(); document.getElementById('itemDate').valueAsDate = new Date();
 });
 
 onSnapshot(query(collection(db, "inventory"), orderBy("createdAt", "desc")), (snapshot) => {
-    inventoryTableBody.innerHTML = '';
+    const tbody = document.getElementById('inventoryTableBody'); tbody.innerHTML = '';
     let activeItemsCount = 0;
-
     snapshot.forEach((docRef) => {
         const data = docRef.data();
         if(data.status !== 'Removed') activeItemsCount++;
         
-        // Status Badge Logic
         let statusBadge = '';
         if(data.status === 'Active') statusBadge = `<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded"><i class="fas fa-check-circle mr-1"></i>Active</span>`;
         else if(data.status === 'Repair') statusBadge = `<span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded"><i class="fas fa-wrench mr-1"></i>In Repair</span>`;
         else if(data.status === 'Removed') statusBadge = `<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded"><i class="fas fa-trash mr-1"></i>Removed</span>`;
 
-        inventoryTableBody.innerHTML += `
+        // Action buttons including location update
+        tbody.innerHTML += `
             <tr class="hover:bg-gray-50 transition">
                 <td class="p-3 font-bold text-gray-800">${data.itemID}</td>
                 <td class="p-3">${data.name}</td>
-                <td class="p-3 text-gray-600">
-                    ${data.status === 'Removed' ? '-' : data.location}
-                </td>
+                <td class="p-3 font-semibold text-blue-700">${data.status === 'Removed' ? '-' : data.location}</td>
                 <td class="p-3">${statusBadge}</td>
                 <td class="p-3 text-center space-x-1">
-                    <button onclick="updateLocation('${docRef.id}', '${data.location}')" title="Move Site" class="bg-gray-200 hover:bg-gray-300 text-gray-700 py-1 px-2 rounded transition ${data.status === 'Removed' ? 'hidden':''}">
-                        <i class="fas fa-truck"></i>
+                    <button onclick="updateLocation('${docRef.id}', '${data.location}')" title="Move Site/Location" class="bg-blue-100 hover:bg-blue-200 text-blue-800 py-1 px-2 rounded transition ${data.status === 'Removed' ? 'hidden':''}">
+                        <i class="fas fa-truck"></i> Update Loc.
                     </button>
-                    <select onchange="changeItemStatus('${docRef.id}', this.value)" class="text-xs border p-1 rounded bg-white cursor-pointer">
+                    <select onchange="changeItemStatus('${docRef.id}', this.value)" class="text-xs border p-1 rounded bg-white cursor-pointer ml-1">
                         <option value="" disabled selected>Status...</option>
                         <option value="Active">Active</option>
                         <option value="Repair">Send to Repair</option>
@@ -354,18 +312,18 @@ onSnapshot(query(collection(db, "inventory"), orderBy("createdAt", "desc")), (sn
             </tr>
         `;
     });
-    totalItemsLbl.innerText = activeItemsCount;
+    document.getElementById('total-items-lbl').innerText = activeItemsCount;
 });
 
-// Update Location
+// Location Update logic - prompts for new site/location
 window.updateLocation = async function(docId, currentLocation) {
-    const newLocation = prompt("Move tool to new Site/Location:", currentLocation);
+    const newLocation = prompt(`Current Location: ${currentLocation}\n\nEnter new assigned Site or Office:`, currentLocation);
     if (newLocation && newLocation.trim() !== "" && newLocation !== currentLocation) {
         await updateDoc(doc(db, "inventory", docId), { location: newLocation, updatedAt: serverTimestamp() });
+        // Optional: You could log this history into a separate "inventory_history" collection here if you wanted a full tracking log.
     }
 };
 
-// Update Status (Active -> Repair -> Removed)
 window.changeItemStatus = async function(docId, newStatus) {
     if(newStatus && confirm(`Change item status to ${newStatus}?`)) {
         await updateDoc(doc(db, "inventory", docId), { status: newStatus, updatedAt: serverTimestamp() });
