@@ -1,9 +1,8 @@
 /*
- * Niwasa Constructions ERP - Advanced Logic with Delete, CSV & History
+ * Niwasa Constructions ERP - Advanced Logic with Modals & Error Handling
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
-// Added deleteDoc
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, updateDoc, deleteDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 
@@ -68,20 +67,36 @@ window.deleteDocument = async function(collectionName, docId) {
 
 
 // ==========================================
-// SITES MANAGEMENT
+// SITES MANAGEMENT (With Error Handling)
 // ==========================================
 const expSiteSelect = document.getElementById('expSite');
 const reportSiteSelect = document.getElementById('reportSiteSelect');
 
 document.getElementById('siteForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    await addDoc(collection(db, "sites"), {
-        name: document.getElementById('siteName').value,
-        location: document.getElementById('siteLocation').value,
-        startDate: document.getElementById('siteStartDate').value,
-        status: 'Active', createdAt: serverTimestamp()
-    });
-    e.target.reset(); document.getElementById('siteStartDate').valueAsDate = new Date();
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
+    btn.disabled = true;
+    
+    try {
+        await addDoc(collection(db, "sites"), {
+            name: document.getElementById('siteName').value,
+            location: document.getElementById('siteLocation').value,
+            startDate: document.getElementById('siteStartDate').value,
+            status: 'Active', 
+            createdAt: serverTimestamp()
+        });
+        e.target.reset(); 
+        document.getElementById('siteStartDate').valueAsDate = new Date();
+        alert("Site Added Successfully!");
+    } catch (error) {
+        console.error("Error adding site:", error);
+        alert("Error Saving Data: " + error.message + " (Check Firebase Rules!)");
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
 });
 
 onSnapshot(query(collection(db, "sites"), orderBy("createdAt", "desc")), (snapshot) => {
@@ -244,7 +259,6 @@ window.downloadCSV = function() {
     
     let csv = "Date,Category,Description,Amount (Rs.)\n";
     siteExpenses.forEach(exp => {
-        // Replace commas in description to avoid CSV breaking
         const safeDesc = exp.description ? exp.description.replace(/,/g, ' ') : '';
         csv += `${exp.date},${exp.category},${safeDesc},${exp.amount}\n`;
     });
@@ -290,7 +304,7 @@ onSnapshot(query(collection(db, "itemCategories"), orderBy("name", "asc")), (sna
 
 
 // ==========================================
-// INVENTORY & MOVEMENT HISTORY LOGIC
+// INVENTORY LOGIC
 // ==========================================
 async function generateItemID(prefix) {
     const qCount = query(collection(db, "inventory"), where("prefix", "==", prefix));
@@ -305,21 +319,21 @@ document.getElementById('itemForm').addEventListener('submit', async (e) => {
     
     const initialLocation = document.getElementById('itemLocation').value;
     const itemID = await generateItemID(prefix);
+    const purchaseDate = document.getElementById('itemDate').value;
 
     const newItemRef = await addDoc(collection(db, "inventory"), {
         itemID: itemID, prefix: prefix, name: cat.name,
-        purchasedDate: document.getElementById('itemDate').value,
+        purchasedDate: purchaseDate,
         location: initialLocation,
         status: 'Active', createdAt: serverTimestamp()
     });
 
-    // Record initial location in history
     await addDoc(collection(db, "inventoryHistory"), {
         itemID: itemID,
         from: "New Purchase",
         to: initialLocation,
         movedAt: serverTimestamp(),
-        date: new Date().toLocaleDateString()
+        date: purchaseDate
     });
 
     e.target.reset(); document.getElementById('itemDate').valueAsDate = new Date();
@@ -362,22 +376,44 @@ onSnapshot(query(collection(db, "inventory"), orderBy("createdAt", "desc")), (sn
     document.getElementById('total-items-lbl').innerText = activeItemsCount;
 });
 
-// Location Update logic - Saves History
-window.updateLocation = async function(docId, currentLocation, itemID) {
-    const newLocation = prompt(`Current Location: ${currentLocation}\n\nEnter new assigned Site or Office:`, currentLocation);
-    if (newLocation && newLocation.trim() !== "" && newLocation !== currentLocation) {
-        
-        // Update main item document
-        await updateDoc(doc(db, "inventory", docId), { location: newLocation, updatedAt: serverTimestamp() });
-        
-        // Add record to history collection
+
+// ==========================================
+// LOCATION UPDATE LOGIC (With Modal & Date)
+// ==========================================
+let currentMoveData = {}; 
+
+window.updateLocation = function(docId, currentLocation, itemID) {
+    currentMoveData = { docId, currentLocation, itemID };
+    document.getElementById('moveModalItemID').innerText = itemID;
+    document.getElementById('moveNewLocation').value = '';
+    document.getElementById('moveDate').valueAsDate = new Date(); 
+    document.getElementById('moveItemModal').classList.remove('hidden');
+};
+
+window.closeMoveModal = function() {
+    document.getElementById('moveItemModal').classList.add('hidden');
+};
+
+window.submitMoveItem = async function() {
+    const newLocation = document.getElementById('moveNewLocation').value.trim();
+    const moveDate = document.getElementById('moveDate').value; 
+
+    if (!newLocation) return alert("Please enter a new location.");
+    if (newLocation === currentMoveData.currentLocation) return alert("The item is already at this location.");
+
+    try {
+        await updateDoc(doc(db, "inventory", currentMoveData.docId), { location: newLocation, updatedAt: serverTimestamp() });
         await addDoc(collection(db, "inventoryHistory"), {
-            itemID: itemID,
-            from: currentLocation,
+            itemID: currentMoveData.itemID,
+            from: currentMoveData.currentLocation,
             to: newLocation,
             movedAt: serverTimestamp(),
-            date: new Date().toLocaleDateString()
+            date: moveDate 
         });
+        closeMoveModal();
+    } catch (error) {
+        console.error("Error moving item:", error);
+        alert("Failed to move item.");
     }
 };
 
@@ -387,30 +423,40 @@ window.changeItemStatus = async function(docId, newStatus) {
     }
 };
 
-// View History Logic
+
+// ==========================================
+// VIEW HISTORY LOGIC (With Error Handling)
+// ==========================================
 window.viewHistory = async function(itemID) {
     document.getElementById('historyItemName').innerText = `Item: ${itemID}`;
     const list = document.getElementById('historyList');
-    list.innerHTML = '<li class="text-center text-gray-500"><i class="fas fa-spinner fa-spin"></i> Loading...</li>';
-    document.getElementById('historyEmpty').classList.add('hidden');
+    const emptyState = document.getElementById('historyEmpty');
+    
+    list.innerHTML = '<li class="text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i> Loading...</li>';
+    emptyState.classList.add('hidden');
     document.getElementById('historyModal').classList.remove('hidden');
 
-    const q = query(collection(db, "inventoryHistory"), where("itemID", "==", itemID), orderBy("movedAt", "desc"));
-    const snapshot = await getDocs(q);
+    try {
+        const q = query(collection(db, "inventoryHistory"), where("itemID", "==", itemID), orderBy("movedAt", "desc"));
+        const snapshot = await getDocs(q);
 
-    list.innerHTML = '';
-    if (snapshot.empty) {
-        document.getElementById('historyEmpty').classList.remove('hidden');
-    } else {
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            list.innerHTML += `
-                <li class="pl-6 relative">
-                    <span class="absolute left-[-5px] top-1 w-3 h-3 bg-blue-500 rounded-full"></span>
-                    <p class="text-sm font-bold text-gray-800">${data.date}</p>
-                    <p class="text-sm text-gray-600">Moved from <span class="font-semibold text-red-500">${data.from}</span> to <span class="font-semibold text-green-600">${data.to}</span></p>
-                </li>
-            `;
-        });
+        list.innerHTML = '';
+        if (snapshot.empty) {
+            emptyState.classList.remove('hidden');
+        } else {
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                list.innerHTML += `
+                    <li class="pl-6 relative">
+                        <span class="absolute left-[-5px] top-1 w-3 h-3 bg-blue-500 rounded-full shadow"></span>
+                        <p class="text-sm font-bold text-gray-800">${data.date}</p>
+                        <p class="text-sm text-gray-600">Moved from <span class="font-semibold text-red-500">${data.from}</span> to <span class="font-semibold text-green-600">${data.to}</span></p>
+                    </li>
+                `;
+            });
+        }
+    } catch (error) {
+        console.error("History fetch error:", error);
+        list.innerHTML = `<li class="text-center text-red-500 font-semibold p-4 bg-red-50 rounded-lg text-sm">Error loading history!<br><br>Check browser console (F12) and click the Firebase link to create the required Index.</li>`;
     }
 };
