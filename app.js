@@ -1,5 +1,5 @@
 /*
- * Niwasa Constructions ERP - Grouped Lists & Full Error Handling
+ * Niwasa Constructions ERP - Select Dropdown Filters
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
@@ -20,8 +20,11 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const IMGBB_API_KEY = "4d99a2396623c2d301a6e8233f352ba7";
 
+// Global Data Arrays
+let allSitesData = [];
 let allExpenses = []; 
-let allSites = [];
+let allInventory = [];
+let globalCategories = [];
 
 // ==========================================
 // AUTHENTICATION
@@ -71,6 +74,7 @@ window.deleteDocument = async function(collectionName, docId) {
 // ==========================================
 const expSiteSelect = document.getElementById('expSite');
 const reportSiteSelect = document.getElementById('reportSiteSelect');
+const filterExpenseSite = document.getElementById('filterExpenseSite'); // The new dropdown
 
 document.getElementById('siteForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -91,8 +95,7 @@ document.getElementById('siteForm').addEventListener('submit', async (e) => {
         document.getElementById('siteStartDate').valueAsDate = new Date();
         alert("Site Added Successfully!");
     } catch (error) {
-        console.error("Error adding site:", error);
-        alert("Error Saving Data: " + error.message + " (Check Firebase Rules!)");
+        alert("Error Saving Data: " + error.message);
     } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
@@ -102,28 +105,38 @@ document.getElementById('siteForm').addEventListener('submit', async (e) => {
 onSnapshot(query(collection(db, "sites"), orderBy("createdAt", "desc")), (snapshot) => {
     const tbody = document.getElementById('sitesTableBody');
     tbody.innerHTML = '';
+    
+    // Reset Dropdowns
     expSiteSelect.innerHTML = '<option value="" disabled selected>Select Site</option>';
     reportSiteSelect.innerHTML = '<option value="" disabled selected>Select a Site...</option>'; 
+    
     let activeCount = 0;
-    allSites = []; 
+    allSitesData = []; 
+
+    let activeSitesHTML = '<optgroup label="Active Sites">';
+    let completedSitesHTML = '<optgroup label="Completed Sites">';
 
     snapshot.forEach((docRef) => {
         const data = docRef.data();
-        allSites.push(data.name); 
+        allSitesData.push(data); 
 
+        // Populate Form Dropdowns
         reportSiteSelect.innerHTML += `<option value="${data.name}">${data.name} (${data.status})</option>`;
         if (data.status === 'Active') {
             activeCount++;
             expSiteSelect.innerHTML += `<option value="${data.name}">${data.name} (${data.location})</option>`;
+            activeSitesHTML += `<option value="${data.name}">${data.name}</option>`;
+        } else {
+            completedSitesHTML += `<option value="${data.name}">${data.name}</option>`;
         }
         
+        // Render Site List Table
         const actionBtns = `
             <div class="flex justify-center items-center space-x-2">
                 ${data.status === 'Active' ? `<button onclick="markSiteCompleted('${docRef.id}')" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-1 px-2 rounded">Mark Completed</button>` : `<span class="text-xs text-gray-400">Done</span>`}
                 <button onclick="deleteDocument('sites', '${docRef.id}')" class="text-red-500 hover:text-red-700 p-1"><i class="fas fa-trash-alt"></i></button>
             </div>
         `;
-
         tbody.innerHTML += `
             <tr class="hover:bg-gray-50 transition">
                 <td class="p-3 font-medium text-gray-900">${data.name}</td>
@@ -134,13 +147,19 @@ onSnapshot(query(collection(db, "sites"), orderBy("createdAt", "desc")), (snapsh
             </tr>
         `;
     });
+    
     document.getElementById('active-sites-lbl').innerText = activeCount;
+    
+    // Update the Filter Dropdown in Expenses Tab
+    activeSitesHTML += '</optgroup>';
+    completedSitesHTML += '</optgroup>';
+    filterExpenseSite.innerHTML = '<option value="ALL">All Sites</option>' + activeSitesHTML + completedSitesHTML;
 });
 window.markSiteCompleted = async (id) => { if(confirm("Mark site as Completed?")) await updateDoc(doc(db, "sites", id), { status: "Completed" }); };
 
 
 // ==========================================
-// EXPENSES MANAGEMENT (Grouped by Site)
+// EXPENSES MANAGEMENT
 // ==========================================
 const expSubmitBtn = document.getElementById('expSubmitBtn');
 document.getElementById('expenseForm').addEventListener('submit', async (e) => {
@@ -166,51 +185,43 @@ document.getElementById('expenseForm').addEventListener('submit', async (e) => {
 });
 
 onSnapshot(query(collection(db, "expenses"), orderBy("createdAt", "desc")), (snapshot) => {
-    const tbody = document.getElementById('expensesTableBody'); tbody.innerHTML = '';
-    let total = 0;
     allExpenses = []; 
-    let groupedExpenses = {};
-
-    // Data Grouping
     snapshot.forEach((docRef) => {
-        const data = docRef.data();
-        allExpenses.push(data); 
-        total += data.amount || 0;
-        
-        const site = data.siteName || "Uncategorized Site";
-        if (!groupedExpenses[site]) groupedExpenses[site] = [];
-        groupedExpenses[site].push({ id: docRef.id, ...data });
+        allExpenses.push({ id: docRef.id, ...docRef.data() }); 
     });
+    window.renderExpensesTable(); // Render based on current filter
+});
 
-    // Rendering Grouped Data
-    for (const [siteName, expensesList] of Object.entries(groupedExpenses)) {
-        // Group Header Row
+window.renderExpensesTable = function() {
+    const filter = document.getElementById('filterExpenseSite').value;
+    const tbody = document.getElementById('expensesTableBody');
+    tbody.innerHTML = '';
+    
+    let total = 0;
+    
+    // Filter array
+    const filteredExpenses = filter === 'ALL' ? allExpenses : allExpenses.filter(e => e.siteName === filter);
+
+    filteredExpenses.forEach((data) => {
+        total += data.amount || 0;
+        const receiptBtn = data.receiptUrl ? `<a href="${data.receiptUrl}" target="_blank" class="text-blue-600 hover:text-blue-800 text-sm font-semibold"><i class="fas fa-file-image mr-1"></i> View</a>` : `<span class="text-xs text-gray-400">-</span>`;
+        
         tbody.innerHTML += `
-            <tr class="bg-gray-200 border-y border-gray-300">
-                <td colspan="5" class="p-2 px-6 font-bold text-gray-800 text-sm uppercase tracking-wider">
-                    <i class="fas fa-building mr-2 text-blue-600"></i> ${siteName}
+            <tr class="hover:bg-gray-50 transition border-b border-gray-100">
+                <td class="p-3 text-gray-600 whitespace-nowrap">${data.date}</td>
+                <td class="p-3">
+                    <div class="font-medium text-gray-900">${data.siteName}</div>
+                    <div class="text-xs text-gray-500"><span class="bg-blue-100 text-blue-800 text-xs px-1 rounded mr-1">${data.category}</span> ${data.description}</div>
                 </td>
+                <td class="p-3 text-right font-bold text-gray-800">Rs. ${data.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td class="p-3 text-center">${receiptBtn}</td>
+                <td class="p-3 text-center"><button onclick="deleteDocument('expenses', '${data.id}')" class="text-red-500 hover:text-red-700 p-1"><i class="fas fa-trash-alt"></i></button></td>
             </tr>
         `;
-        
-        // Expense Rows under the header
-        expensesList.forEach(data => {
-            const receiptBtn = data.receiptUrl ? `<a href="${data.receiptUrl}" target="_blank" class="text-blue-600 hover:text-blue-800 text-sm font-semibold"><i class="fas fa-file-image mr-1"></i> View</a>` : `<span class="text-xs text-gray-400">-</span>`;
-            
-            tbody.innerHTML += `
-                <tr class="hover:bg-gray-50 transition border-b border-gray-100">
-                    <td class="p-3 pl-6 text-gray-600 whitespace-nowrap">${data.date}</td>
-                    <td class="p-3"><div class="text-xs text-gray-500"><span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-semibold mr-1">${data.category}</span> ${data.description}</div></td>
-                    <td class="p-3 text-right font-bold text-gray-800">Rs. ${data.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                    <td class="p-3 text-center">${receiptBtn}</td>
-                    <td class="p-3 text-center"><button onclick="deleteDocument('expenses', '${data.id}')" class="text-red-500 hover:text-red-700 p-1"><i class="fas fa-trash-alt"></i></button></td>
-                </tr>
-            `;
-        });
-    }
+    });
 
     document.getElementById('total-expenses-lbl').innerText = total.toLocaleString(undefined, {minimumFractionDigits: 2});
-});
+};
 
 
 // ==========================================
@@ -296,7 +307,8 @@ window.downloadCSV = function() {
 // ==========================================
 // MASTER ITEM CATEGORIES
 // ==========================================
-let globalCategories = [];
+const filterInventoryCat = document.getElementById('filterInventoryCat');
+
 document.getElementById('masterItemForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     await addDoc(collection(db, "itemCategories"), {
@@ -310,22 +322,29 @@ document.getElementById('masterItemForm').addEventListener('submit', async (e) =
 onSnapshot(query(collection(db, "itemCategories"), orderBy("name", "asc")), (snapshot) => {
     const tbody = document.getElementById('masterItemsTableBody'); tbody.innerHTML = '';
     const select = document.getElementById('itemTypeSelect'); select.innerHTML = '<option value="" disabled selected>Select Item Category</option>';
+    
     globalCategories = [];
+    let filterOptionsHTML = '<option value="ALL">All Categories</option>';
+
     snapshot.forEach((docRef) => {
         const data = docRef.data(); globalCategories.push(data);
+        
         tbody.innerHTML += `
-            <tr class="hover:bg-gray-50 transition">
+            <tr class="hover:bg-gray-50 transition border-b border-gray-100">
                 <td class="p-3 font-medium text-gray-800">${data.name}</td>
                 <td class="p-3"><span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded font-bold">${data.prefix}</span></td>
                 <td class="p-3 text-center"><button onclick="deleteDocument('itemCategories', '${docRef.id}')" class="text-red-500 hover:text-red-700 p-1"><i class="fas fa-trash-alt"></i></button></td>
             </tr>`;
         select.innerHTML += `<option value="${data.prefix}">${data.name} (${data.prefix})</option>`;
+        filterOptionsHTML += `<option value="${data.name}">${data.name}</option>`;
     });
+
+    filterInventoryCat.innerHTML = filterOptionsHTML;
 });
 
 
 // ==========================================
-// INVENTORY LOGIC (Grouped by Category)
+// INVENTORY LOGIC
 // ==========================================
 async function generateItemID(prefix) {
     const qCount = query(collection(db, "inventory"), where("prefix", "==", prefix));
@@ -361,68 +380,59 @@ document.getElementById('itemForm').addEventListener('submit', async (e) => {
 });
 
 onSnapshot(query(collection(db, "inventory"), orderBy("createdAt", "desc")), (snapshot) => {
-    const tbody = document.getElementById('inventoryTableBody'); tbody.innerHTML = '';
+    allInventory = [];
     let activeItemsCount = 0;
-    let groupedInventory = {};
-
-    // Data Grouping
+    
     snapshot.forEach((docRef) => {
         const data = docRef.data();
+        allInventory.push({ id: docRef.id, ...data });
         if(data.status !== 'Removed') activeItemsCount++;
-        
-        const categoryName = data.name || "Uncategorized Tools";
-        if (!groupedInventory[categoryName]) groupedInventory[categoryName] = [];
-        groupedInventory[categoryName].push({ id: docRef.id, ...data });
     });
+    
+    document.getElementById('total-items-lbl').innerText = activeItemsCount;
+    window.renderInventoryTable(); // Render based on current filter
+});
 
-    // Rendering Grouped Data
-    for (const [category, itemsList] of Object.entries(groupedInventory)) {
-        // Group Header Row
+window.renderInventoryTable = function() {
+    const filter = document.getElementById('filterInventoryCat').value;
+    const tbody = document.getElementById('inventoryTableBody');
+    tbody.innerHTML = '';
+    
+    const filteredInventory = filter === 'ALL' ? allInventory : allInventory.filter(i => i.name === filter);
+
+    filteredInventory.forEach((data) => {
+        let statusBadge = '';
+        if(data.status === 'Active') statusBadge = `<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded"><i class="fas fa-check-circle mr-1"></i>Active</span>`;
+        else if(data.status === 'Repair') statusBadge = `<span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded"><i class="fas fa-wrench mr-1"></i>In Repair</span>`;
+        else if(data.status === 'Removed') statusBadge = `<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded"><i class="fas fa-trash mr-1"></i>Removed</span>`;
+
         tbody.innerHTML += `
-            <tr class="bg-gray-200 border-y border-gray-300">
-                <td colspan="5" class="p-2 px-6 font-bold text-gray-800 text-sm uppercase tracking-wider">
-                    <i class="fas fa-cubes mr-2 text-orange-600"></i> ${category}
+            <tr class="hover:bg-gray-50 transition border-b border-gray-100">
+                <td class="p-3 font-bold text-gray-800">${data.itemID}</td>
+                <td class="p-3">${data.name}</td>
+                <td class="p-3 font-semibold text-blue-700">${data.status === 'Removed' ? '-' : data.location}</td>
+                <td class="p-3">${statusBadge}</td>
+                <td class="p-3 text-center space-x-1 flex justify-center items-center">
+                    <button onclick="viewHistory('${data.itemID}')" title="View History" class="text-blue-500 hover:text-blue-700 p-1 mr-1"><i class="fas fa-history"></i></button>
+                    <button onclick="updateLocation('${data.id}', '${data.location}', '${data.itemID}')" title="Move Site/Location" class="bg-blue-100 hover:bg-blue-200 text-blue-800 py-1 px-2 rounded transition ${data.status === 'Removed' ? 'hidden':''}">
+                        <i class="fas fa-truck"></i> Move
+                    </button>
+                    <select onchange="changeItemStatus('${data.id}', this.value)" class="text-xs border p-1 rounded bg-white cursor-pointer ml-1">
+                        <option value="" disabled selected>Status...</option>
+                        <option value="Active">Active</option>
+                        <option value="Repair">Send to Repair</option>
+                        <option value="Removed">Remove/Discard</option>
+                    </select>
+                    <button onclick="deleteDocument('inventory', '${data.id}')" class="text-red-500 hover:text-red-700 p-1 ml-2"><i class="fas fa-trash-alt"></i></button>
                 </td>
             </tr>
         `;
-
-        // Tool Rows under the header
-        itemsList.forEach(data => {
-            let statusBadge = '';
-            if(data.status === 'Active') statusBadge = `<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded"><i class="fas fa-check-circle mr-1"></i>Active</span>`;
-            else if(data.status === 'Repair') statusBadge = `<span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded"><i class="fas fa-wrench mr-1"></i>In Repair</span>`;
-            else if(data.status === 'Removed') statusBadge = `<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded"><i class="fas fa-trash mr-1"></i>Removed</span>`;
-
-            tbody.innerHTML += `
-                <tr class="hover:bg-gray-50 transition border-b border-gray-100">
-                    <td class="p-3 pl-6 font-bold text-gray-800">${data.itemID}</td>
-                    <td class="p-3">${data.name}</td>
-                    <td class="p-3 font-semibold text-blue-700">${data.status === 'Removed' ? '-' : data.location}</td>
-                    <td class="p-3">${statusBadge}</td>
-                    <td class="p-3 text-center space-x-1 flex justify-center items-center">
-                        <button onclick="viewHistory('${data.itemID}')" title="View History" class="text-blue-500 hover:text-blue-700 p-1 mr-1"><i class="fas fa-history"></i></button>
-                        <button onclick="updateLocation('${data.id}', '${data.location}', '${data.itemID}')" title="Move Site/Location" class="bg-blue-100 hover:bg-blue-200 text-blue-800 py-1 px-2 rounded transition ${data.status === 'Removed' ? 'hidden':''}">
-                            <i class="fas fa-truck"></i> Move
-                        </button>
-                        <select onchange="changeItemStatus('${data.id}', this.value)" class="text-xs border p-1 rounded bg-white cursor-pointer ml-1">
-                            <option value="" disabled selected>Status...</option>
-                            <option value="Active">Active</option>
-                            <option value="Repair">Send to Repair</option>
-                            <option value="Removed">Remove/Discard</option>
-                        </select>
-                        <button onclick="deleteDocument('inventory', '${data.id}')" class="text-red-500 hover:text-red-700 p-1 ml-2"><i class="fas fa-trash-alt"></i></button>
-                    </td>
-                </tr>
-            `;
-        });
-    }
-
-    document.getElementById('total-items-lbl').innerText = activeItemsCount;
-});
+    });
+};
 
 
 // ==========================================
-// LOCATION UPDATE LOGIC (With Modal & Date)
+// LOCATION UPDATE LOGIC
 // ==========================================
 let currentMoveData = {}; 
 
@@ -432,10 +442,6 @@ window.updateLocation = function(docId, currentLocation, itemID) {
     document.getElementById('moveNewLocation').value = '';
     document.getElementById('moveDate').valueAsDate = new Date(); 
     document.getElementById('moveItemModal').classList.remove('hidden');
-};
-
-window.closeMoveModal = function() {
-    document.getElementById('moveItemModal').classList.add('hidden');
 };
 
 window.submitMoveItem = async function() {
@@ -454,9 +460,8 @@ window.submitMoveItem = async function() {
             movedAt: serverTimestamp(),
             date: moveDate 
         });
-        closeMoveModal();
+        document.getElementById('moveItemModal').classList.add('hidden');
     } catch (error) {
-        console.error("Error moving item:", error);
         alert("Failed to move item.");
     }
 };
@@ -469,7 +474,7 @@ window.changeItemStatus = async function(docId, newStatus) {
 
 
 // ==========================================
-// VIEW HISTORY LOGIC (With Error Handling)
+// VIEW HISTORY LOGIC
 // ==========================================
 window.viewHistory = async function(itemID) {
     document.getElementById('historyItemName').innerText = `Item: ${itemID}`;
