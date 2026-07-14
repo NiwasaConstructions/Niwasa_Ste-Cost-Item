@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Niwasa Constructions - ERP System</title>
+    <title>Niwasa Constructions - Site Management System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -11,232 +11,298 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .nav-item.active { background-color: #1d4ed8; color: white; }
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body class="h-screen overflow-hidden bg-gray-100 flex items-center justify-center">
 
-    <aside class="w-64 bg-gray-900 text-white flex flex-col shadow-lg">
-        <div class="p-6 text-center border-b border-gray-700">
-            <h1 class="text-2xl font-bold text-blue-400">NIWASA</h1>
-            <p class="text-xs text-gray-400">CONSTRUCTIONS (PVT) LTD</p>
+    <div id="login-screen" class="w-full h-full flex items-center justify-center bg-gray-900 absolute z-50 transition-opacity duration-500">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-96 max-w-full">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-blue-600 mb-1">NIWASA</h1>
+                <p class="text-sm text-gray-500">ERP System Login</p>
+            </div>
+            <form id="loginForm" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <div class="relative">
+                        <i class="fas fa-envelope absolute left-3 top-3 text-gray-400"></i>
+                        <input type="email" id="loginEmail" required class="w-full pl-10 p-2.5 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="admin@niwasa.lk">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <div class="relative">
+                        <i class="fas fa-lock absolute left-3 top-3 text-gray-400"></i>
+                        <input type="password" id="loginPassword" required class="w-full pl-10 p-2.5 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="••••••••">
+                    </div>
+                </div>
+                <button type="submit" id="loginBtn" class="w-full bg-blue-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-blue-700 transition flex justify-center items-center">
+                    <span>Sign In</span>
+                </button>
+            </form>
+            <p id="loginError" class="text-red-500 text-sm text-center mt-4 hidden"></p>
         </div>
-        <nav class="flex-1 px-4 py-6 space-y-2">
-            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item active w-full flex items-center p-3 rounded-lg hover:bg-gray-800 transition">
-                <i class="fas fa-chart-line w-6"></i> <span class="ml-2">Dashboard</span>
-            </button>
-            <button onclick="switchTab('sites')" id="nav-sites" class="nav-item w-full flex items-center p-3 rounded-lg hover:bg-gray-800 transition">
-                <i class="fas fa-building w-6"></i> <span class="ml-2">Manage Sites</span>
-            </button>
-            <button onclick="switchTab('expenses')" id="nav-expenses" class="nav-item w-full flex items-center p-3 rounded-lg hover:bg-gray-800 transition">
-                <i class="fas fa-wallet w-6"></i> <span class="ml-2">Site Expenses</span>
-            </button>
-            <button onclick="switchTab('inventory')" id="nav-inventory" class="nav-item w-full flex items-center p-3 rounded-lg hover:bg-gray-800 transition">
-                <i class="fas fa-tools w-6"></i> <span class="ml-2">Inventory & Tools</span>
-            </button>
-        </nav>
-        <div class="p-4 text-xs text-gray-500 text-center border-t border-gray-700">
-            &copy; 2026 Niwasa Constructions
-        </div>
-    </aside>
+    </div>
 
-    <main class="flex-1 flex flex-col h-screen overflow-y-auto bg-gray-100">
+    <div id="main-app" class="hidden w-full h-full flex">
         
-        <header class="bg-white shadow-sm p-4 flex justify-between items-center">
-            <h2 id="page-title" class="text-xl font-semibold text-gray-800">Dashboard</h2>
-            <div class="flex items-center text-gray-600">
-                <i class="fas fa-user-circle text-2xl mr-2"></i>
-                <span>Office Admin</span>
+        <aside class="w-64 bg-gray-900 text-white flex flex-col shadow-lg z-10">
+            <div class="p-6 text-center border-b border-gray-700">
+                <h1 class="text-2xl font-bold text-blue-400 tracking-wider">NIWASA</h1>
+                <p class="text-xs text-gray-400 mt-1">CONSTRUCTIONS (PVT) LTD</p>
             </div>
-        </header>
-
-        <div class="p-6 flex-1">
-            
-            <div id="dashboard" class="tab-content active">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    <div class="bg-white rounded-xl shadow p-6 border-l-4 border-blue-500">
-                        <h3 class="text-gray-500 text-sm">Total Expenses (This Month)</h3>
-                        <p class="text-3xl font-bold text-gray-800 mt-2">Rs. <span id="total-expenses-lbl">0.00</span></p>
-                    </div>
-                    <div class="bg-white rounded-xl shadow p-6 border-l-4 border-green-500">
-                        <h3 class="text-gray-500 text-sm">Active Sites</h3>
-                        <p class="text-3xl font-bold text-gray-800 mt-2" id="active-sites-lbl">0</p>
-                    </div>
-                    <div class="bg-white rounded-xl shadow p-6 border-l-4 border-orange-500">
-                        <h3 class="text-gray-500 text-sm">Total Inventory Items</h3>
-                        <p class="text-3xl font-bold text-gray-800 mt-2" id="total-items-lbl">0</p>
-                    </div>
+            <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item active w-full flex items-center p-3 rounded-lg hover:bg-gray-800 transition">
+                    <i class="fas fa-chart-line w-6 text-center"></i> <span class="ml-2">Dashboard</span>
+                </button>
+                <button onclick="switchTab('sites')" id="nav-sites" class="nav-item w-full flex items-center p-3 rounded-lg hover:bg-gray-800 transition">
+                    <i class="fas fa-building w-6 text-center"></i> <span class="ml-2">Manage Sites</span>
+                </button>
+                <button onclick="switchTab('expenses')" id="nav-expenses" class="nav-item w-full flex items-center p-3 rounded-lg hover:bg-gray-800 transition">
+                    <i class="fas fa-wallet w-6 text-center"></i> <span class="ml-2">Site Expenses</span>
+                </button>
+                
+                <div class="pt-4 pb-2">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-3">Inventory Setup</p>
                 </div>
-                <div class="bg-white rounded-xl shadow p-6">
-                    <h3 class="text-lg font-semibold mb-4">Welcome to Niwasa ERP</h3>
-                    <p class="text-gray-600">Use the sidebar to navigate to Sites, Expenses, and Inventory management.</p>
-                </div>
+                
+                <button onclick="switchTab('master-items')" id="nav-master-items" class="nav-item w-full flex items-center p-3 rounded-lg hover:bg-gray-800 transition">
+                    <i class="fas fa-cubes w-6 text-center"></i> <span class="ml-2">Item Categories</span>
+                </button>
+                <button onclick="switchTab('inventory')" id="nav-inventory" class="nav-item w-full flex items-center p-3 rounded-lg hover:bg-gray-800 transition">
+                    <i class="fas fa-tools w-6 text-center"></i> <span class="ml-2">Manage Inventory</span>
+                </button>
+            </nav>
+            <div class="p-4 border-t border-gray-700">
+                <button id="logoutBtn" class="w-full flex items-center justify-center p-2 text-red-400 hover:bg-gray-800 rounded transition">
+                    <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                </button>
             </div>
+        </aside>
 
-            <div id="sites" class="tab-content">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="bg-white rounded-xl shadow p-6 lg:col-span-1 h-fit">
-                        <h3 class="text-lg font-semibold mb-4 border-b pb-2"><i class="fas fa-plus-circle text-green-500 mr-2"></i>Add New Site</h3>
-                        <form id="siteForm" class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Site Name</label>
-                                <input type="text" id="siteName" required class="mt-1 w-full p-2 border rounded focus:ring-green-500 focus:border-green-500" placeholder="e.g. Kottawa Villa">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Location</label>
-                                <input type="text" id="siteLocation" required class="mt-1 w-full p-2 border rounded focus:ring-green-500 focus:border-green-500" placeholder="e.g. Kottawa">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Start Date</label>
-                                <input type="date" id="siteStartDate" required class="mt-1 w-full p-2 border rounded focus:ring-green-500 focus:border-green-500">
-                            </div>
-                            <button type="submit" class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded hover:bg-green-700 transition">Save Site</button>
-                        </form>
-                    </div>
+        <main class="flex-1 flex flex-col h-screen overflow-y-auto">
+            <header class="bg-white shadow-sm p-4 flex justify-between items-center sticky top-0 z-10">
+                <h2 id="page-title" class="text-2xl font-bold text-gray-800">Dashboard</h2>
+                <div class="flex items-center text-gray-600 bg-gray-100 py-1.5 px-3 rounded-full border border-gray-200">
+                    <i class="fas fa-user-shield text-blue-600 mr-2"></i>
+                    <span id="currentUserEmail" class="text-sm font-medium">Loading...</span>
+                </div>
+            </header>
 
-                    <div class="bg-white rounded-xl shadow p-6 lg:col-span-2">
-                        <h3 class="text-lg font-semibold mb-4 border-b pb-2"><i class="fas fa-building text-green-500 mr-2"></i>All Projects / Sites</h3>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="bg-gray-100 text-gray-600 text-sm">
-                                        <th class="p-3 border-b">Site Name</th>
-                                        <th class="p-3 border-b">Location</th>
-                                        <th class="p-3 border-b">Start Date</th>
-                                        <th class="p-3 border-b">Status</th>
-                                        <th class="p-3 border-b text-center">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="sitesTableBody" class="text-sm text-gray-700">
-                                    </tbody>
-                            </table>
+            <div class="p-6 flex-1">
+                
+                <div id="dashboard" class="tab-content active">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
+                            <h3 class="text-gray-500 text-sm font-medium">Total Expenses</h3>
+                            <p class="text-3xl font-bold text-gray-800 mt-2">Rs. <span id="total-expenses-lbl">0.00</span></p>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
+                            <h3 class="text-gray-500 text-sm font-medium">Active Sites</h3>
+                            <p class="text-3xl font-bold text-gray-800 mt-2" id="active-sites-lbl">0</p>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-orange-500">
+                            <h3 class="text-gray-500 text-sm font-medium">Total Tools in Field</h3>
+                            <p class="text-3xl font-bold text-gray-800 mt-2" id="total-items-lbl">0</p>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div id="expenses" class="tab-content">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="bg-white rounded-xl shadow p-6 lg:col-span-1 h-fit">
-                        <h3 class="text-lg font-semibold mb-4 border-b pb-2"><i class="fas fa-plus-circle text-blue-500 mr-2"></i>Add New Expense</h3>
-                        <form id="expenseForm" class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Select Site</label>
-                                <select id="expSite" required class="mt-1 w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="" disabled selected>Loading sites...</option>
-                                </select>
+                <div id="sites" class="tab-content">
+                    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm p-6 xl:col-span-1 h-fit border border-gray-100">
+                            <h3 class="text-lg font-bold mb-4 border-b pb-2 text-gray-700"><i class="fas fa-plus-circle text-green-500 mr-2"></i>Add New Site</h3>
+                            <form id="siteForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Site Name</label>
+                                    <input type="text" id="siteName" required class="mt-1 w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Location</label>
+                                    <input type="text" id="siteLocation" required class="mt-1 w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Start Date</label>
+                                    <input type="date" id="siteStartDate" required class="mt-1 w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                </div>
+                                <button type="submit" class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition">Save Project</button>
+                            </form>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-6 xl:col-span-2 border border-gray-100">
+                            <h3 class="text-lg font-bold mb-4 border-b pb-2 text-gray-700"><i class="fas fa-list text-green-500 mr-2"></i>Project List</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-gray-50 text-gray-600 text-sm border-y">
+                                            <th class="p-3">Site Name</th>
+                                            <th class="p-3">Location</th>
+                                            <th class="p-3">Start Date</th>
+                                            <th class="p-3">Status</th>
+                                            <th class="p-3 text-center">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="sitesTableBody" class="text-sm text-gray-700 divide-y divide-gray-100"></tbody>
+                                </table>
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Date</label>
-                                <input type="date" id="expDate" required class="mt-1 w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Category</label>
-                                <select id="expCategory" required class="mt-1 w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500" onchange="toggleCustomCategory()">
-                                    <option value="" disabled selected>Select Category</option>
-                                    <option value="Materials">Materials</option>
-                                    <option value="Transport">Transport</option>
-                                    <option value="Labor">Labor</option>
-                                    <option value="Food">Food</option>
-                                    <option value="Other">Other (Please specify)</option>
-                                </select>
-                            </div>
-                            <div id="customCategoryDiv" style="display: none;">
-                                <label class="block text-sm font-medium text-gray-700">Specify Other Category</label>
-                                <input type="text" id="expCustomCategory" class="mt-1 w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500" placeholder="Type category name">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Amount (Rs.)</label>
-                                <input type="number" id="expAmount" required class="mt-1 w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500" placeholder="0.00">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Description</label>
-                                <textarea id="expDesc" rows="2" class="mt-1 w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500" placeholder="Brief description"></textarea>
-                            </div>
-                            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 transition">Save Expense</button>
-                        </form>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow p-6 lg:col-span-2">
-                        <h3 class="text-lg font-semibold mb-4 border-b pb-2"><i class="fas fa-list text-blue-500 mr-2"></i>Recent Expenses</h3>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="bg-gray-100 text-gray-600 text-sm">
-                                        <th class="p-3 border-b">Date</th>
-                                        <th class="p-3 border-b">Site</th>
-                                        <th class="p-3 border-b">Category</th>
-                                        <th class="p-3 border-b">Description</th>
-                                        <th class="p-3 border-b text-right">Amount (Rs.)</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="expensesTableBody" class="text-sm text-gray-700">
-                                    </tbody>
-                            </table>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div id="inventory" class="tab-content">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="bg-white rounded-xl shadow p-6 lg:col-span-1 h-fit">
-                        <h3 class="text-lg font-semibold mb-4 border-b pb-2"><i class="fas fa-plus-circle text-orange-500 mr-2"></i>Add New Item</h3>
-                        <form id="itemForm" class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Item Type</label>
-                                <select id="itemTypeSelect" required class="mt-1 w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500" onchange="toggleNewItemType()">
-                                    <option value="" disabled selected>Select Item Type</option>
-                                    <option value="NEW_TYPE">+ Add New Type</option>
-                                </select>
-                            </div>
-                            
-                            <div id="newTypeDiv" style="display: none;" class="p-3 bg-gray-50 border rounded">
-                                <label class="block text-sm font-medium text-gray-700">New Item Name (e.g. Grinder)</label>
-                                <input type="text" id="newItemName" class="mt-1 w-full p-2 border rounded mb-2" placeholder="Item Name">
+                <div id="expenses" class="tab-content">
+                    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm p-6 xl:col-span-1 h-fit border border-gray-100">
+                            <h3 class="text-lg font-bold mb-4 border-b pb-2 text-gray-700"><i class="fas fa-file-invoice-dollar text-blue-500 mr-2"></i>Record Expense</h3>
+                            <form id="expenseForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Select Site</label>
+                                    <select id="expSite" required class="mt-1 w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></select>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Date</label>
+                                        <input type="date" id="expDate" required class="mt-1 w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Amount (Rs.)</label>
+                                        <input type="number" id="expAmount" required class="mt-1 w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="0.00">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Category</label>
+                                    <select id="expCategory" required class="mt-1 w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500" onchange="toggleCustomCategory()">
+                                        <option value="" disabled selected>Select...</option>
+                                        <option value="Materials">Materials</option>
+                                        <option value="Transport">Transport</option>
+                                        <option value="Labor">Labor</option>
+                                        <option value="Food">Food</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div id="customCategoryDiv" style="display: none;">
+                                    <input type="text" id="expCustomCategory" class="mt-1 w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Specify Category">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                                    <textarea id="expDesc" rows="2" class="mt-1 w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="What was this for?"></textarea>
+                                </div>
                                 
-                                <label class="block text-sm font-medium text-gray-700">Prefix Code (e.g. GRN)</label>
-                                <input type="text" id="newItemPrefix" class="mt-1 w-full p-2 border rounded" placeholder="3-letter code uppercase" maxlength="4">
-                            </div>
+                                <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                                    <label class="block text-sm font-semibold text-blue-800 mb-1"><i class="fas fa-camera mr-1"></i> Upload Bill/Receipt (Optional)</label>
+                                    <input type="file" id="expReceipt" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
+                                </div>
 
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Purchased Date</label>
-                                <input type="date" id="itemDate" required class="mt-1 w-full p-2 border rounded">
+                                <button type="submit" id="expSubmitBtn" class="w-full bg-blue-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-blue-700 transition flex justify-center items-center">
+                                    <span>Save Expense</span>
+                                </button>
+                            </form>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-6 xl:col-span-2 border border-gray-100">
+                            <h3 class="text-lg font-bold mb-4 border-b pb-2 text-gray-700">Recent Transactions</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-gray-50 text-gray-600 text-sm border-y">
+                                            <th class="p-3">Date</th>
+                                            <th class="p-3">Site & Details</th>
+                                            <th class="p-3">Category</th>
+                                            <th class="p-3 text-right">Amount (Rs.)</th>
+                                            <th class="p-3 text-center">Receipt</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="expensesTableBody" class="text-sm text-gray-700 divide-y divide-gray-100"></tbody>
+                                </table>
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Current Location / Site</label>
-                                <input type="text" id="itemLocation" required class="mt-1 w-full p-2 border rounded" placeholder="Main Store or Site Name">
-                            </div>
-                            <button type="submit" class="w-full bg-orange-600 text-white font-bold py-2 px-4 rounded hover:bg-orange-700 transition">Add to Inventory</button>
-                        </form>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow p-6 lg:col-span-2">
-                        <h3 class="text-lg font-semibold mb-4 border-b pb-2"><i class="fas fa-boxes text-orange-500 mr-2"></i>Inventory Tracking</h3>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="bg-gray-100 text-gray-600 text-sm">
-                                        <th class="p-3 border-b">Item ID</th>
-                                        <th class="p-3 border-b">Type/Name</th>
-                                        <th class="p-3 border-b">Location</th>
-                                        <th class="p-3 border-b">Added Date</th>
-                                        <th class="p-3 border-b">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="inventoryTableBody" class="text-sm text-gray-700">
-                                    </tbody>
-                            </table>
                         </div>
                     </div>
                 </div>
-            </div>
 
-        </div>
-    </main>
+                <div id="master-items" class="tab-content">
+                    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm p-6 xl:col-span-1 h-fit border border-gray-100">
+                            <h3 class="text-lg font-bold mb-4 border-b pb-2 text-gray-700"><i class="fas fa-tags text-purple-500 mr-2"></i>Create Item Category</h3>
+                            <p class="text-xs text-gray-500 mb-4">Add the types of tools you use before adding them to inventory.</p>
+                            <form id="masterItemForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Item Name (e.g. Grinder)</label>
+                                    <input type="text" id="masterItemName" required class="mt-1 w-full p-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Prefix Code (e.g. GRN)</label>
+                                    <input type="text" id="masterItemPrefix" required class="mt-1 w-full p-2 border rounded-lg focus:ring-2 focus:ring-purple-500 uppercase" maxlength="4" placeholder="3-4 Letters">
+                                </div>
+                                <button type="submit" class="w-full bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-700 transition">Save Category</button>
+                            </form>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-6 xl:col-span-2 border border-gray-100">
+                            <h3 class="text-lg font-bold mb-4 border-b pb-2 text-gray-700">Available Categories</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-gray-50 text-gray-600 text-sm border-y">
+                                            <th class="p-3">Category Name</th>
+                                            <th class="p-3">Prefix Code</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="masterItemsTableBody" class="text-sm text-gray-700 divide-y divide-gray-100"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="inventory" class="tab-content">
+                    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm p-6 xl:col-span-1 h-fit border border-gray-100">
+                            <h3 class="text-lg font-bold mb-4 border-b pb-2 text-gray-700"><i class="fas fa-toolbox text-orange-500 mr-2"></i>Add Physical Item</h3>
+                            <form id="itemForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Select Item Category</label>
+                                    <select id="itemTypeSelect" required class="mt-1 w-full p-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                                        <option value="" disabled selected>Loading categories...</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Purchased Date</label>
+                                    <input type="date" id="itemDate" required class="mt-1 w-full p-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Assign To Location/Site</label>
+                                    <input type="text" id="itemLocation" required class="mt-1 w-full p-2 border rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="e.g. Main Store">
+                                </div>
+                                <button type="submit" class="w-full bg-orange-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-orange-700 transition">Register Item</button>
+                            </form>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-6 xl:col-span-2 border border-gray-100">
+                            <h3 class="text-lg font-bold mb-4 border-b pb-2 text-gray-700">Master Inventory List</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-gray-50 text-gray-600 text-sm border-y">
+                                            <th class="p-3">Item ID</th>
+                                            <th class="p-3">Name</th>
+                                            <th class="p-3">Current Location</th>
+                                            <th class="p-3">Status</th>
+                                            <th class="p-3 text-center">Manage</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="inventoryTableBody" class="text-sm text-gray-700 divide-y divide-gray-100"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
 
     <script type="module" src="app.js"></script>
     <script>
-        // Simple tab switching logic (UI only)
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -245,15 +311,15 @@
             document.getElementById('nav-' + tabId).classList.add('active');
             
             const titles = {
-                'dashboard': 'Dashboard',
+                'dashboard': 'System Dashboard',
                 'sites': 'Manage Construction Sites',
-                'expenses': 'Site Expenses Management',
-                'inventory': 'Inventory & Tools Tracking'
+                'expenses': 'Site Expenses & Bills',
+                'master-items': 'Item Categories Setup',
+                'inventory': 'Physical Inventory Tracking'
             };
             document.getElementById('page-title').innerText = titles[tabId];
         }
 
-        // Toggle custom expense category
         function toggleCustomCategory() {
             const val = document.getElementById('expCategory').value;
             const customDiv = document.getElementById('customCategoryDiv');
@@ -267,23 +333,7 @@
                 customInput.value = '';
             }
         }
-
-        // Toggle new item type
-        function toggleNewItemType() {
-            const val = document.getElementById('itemTypeSelect').value;
-            const newDiv = document.getElementById('newTypeDiv');
-            if (val === 'NEW_TYPE') {
-                newDiv.style.display = 'block';
-                document.getElementById('newItemName').required = true;
-                document.getElementById('newItemPrefix').required = true;
-            } else {
-                newDiv.style.display = 'none';
-                document.getElementById('newItemName').required = false;
-                document.getElementById('newItemPrefix').required = false;
-            }
-        }
         
-        // Set today's date as default for date inputs
         document.getElementById('siteStartDate').valueAsDate = new Date();
         document.getElementById('expDate').valueAsDate = new Date();
         document.getElementById('itemDate').valueAsDate = new Date();
