@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NC - Site Management System</title>
-    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
@@ -28,7 +26,6 @@
 </head>
 <body class="h-screen overflow-hidden bg-gray-100 flex items-center justify-center">
 
-    <!-- LOGIN SCREEN -->
     <div id="login-screen" class="w-full h-full flex items-center justify-center bg-gray-900 absolute z-50 transition-opacity duration-500">
         <div class="bg-white p-8 rounded-2xl shadow-2xl w-96 max-w-full">
             <div class="text-center mb-8">
@@ -58,10 +55,8 @@
         </div>
     </div>
 
-    <!-- MAIN APP -->
     <div id="main-app" class="hidden w-full h-full flex">
         
-        <!-- Sidebar -->
         <aside class="w-64 bg-gray-900 text-white flex flex-col shadow-lg z-10">
             <div class="p-6 text-center border-b border-gray-700">
                 <h1 class="text-2xl font-bold text-blue-400 tracking-wider">NIWASA</h1>
@@ -99,9 +94,7 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
         <main class="flex-1 flex flex-col h-screen overflow-y-auto">
-            <!-- Header -->
             <header class="bg-white shadow-sm p-4 flex justify-between items-center sticky top-0 z-10">
                 <h2 id="page-title" class="text-2xl font-bold text-gray-800">Dashboard</h2>
                 <div class="flex items-center text-gray-600 bg-gray-100 py-1.5 px-3 rounded-full border border-gray-200">
@@ -110,10 +103,8 @@
                 </div>
             </header>
 
-            <!-- Pages Area -->
             <div class="p-6 flex-1">
                 
-                <!-- 1. Dashboard Tab -->
                 <div id="dashboard" class="tab-content active">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                         <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
@@ -131,7 +122,6 @@
                     </div>
                 </div>
 
-                <!-- 2. Manage Sites Tab -->
                 <div id="sites" class="tab-content">
                     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
                         <div class="bg-white rounded-xl shadow-sm p-6 xl:col-span-1 h-fit border border-gray-100">
@@ -172,7 +162,6 @@
                     </div>
                 </div>
 
-                <!-- 3. Expenses Tab -->
                 <div id="expenses" class="tab-content">
                     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
                         <div class="bg-white rounded-xl shadow-sm p-6 xl:col-span-1 h-fit border border-gray-100">
@@ -239,7 +228,6 @@
                     </div>
                 </div>
 
-                <!-- 4. SITE REPORTS TAB -->
                 <div id="reports" class="tab-content">
                     <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 print-area">
                         <div id="reportControls" class="flex flex-col md:flex-row gap-4 mb-6 pb-6 border-b border-gray-200">
@@ -262,7 +250,6 @@
                             </div>
                         </div>
 
-                        <!-- Report Content Area -->
                         <div id="reportContent" class="hidden">
                             <div class="text-center mb-8">
                                 <h1 class="text-2xl font-bold text-gray-900 uppercase">Site Expense Report</h1>
@@ -301,7 +288,6 @@
                     </div>
                 </div>
 
-                <!-- 5. Master Items Categories Tab -->
                 <div id="master-items" class="tab-content">
                     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
                         <div class="bg-white rounded-xl shadow-sm p-6 xl:col-span-1 h-fit border border-gray-100">
@@ -337,7 +323,6 @@
                     </div>
                 </div>
 
-                <!-- 6. Inventory & Tools Tab -->
                 <div id="inventory" class="tab-content">
                     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
                         <div class="bg-white rounded-xl shadow-sm p-6 xl:col-span-1 h-fit border border-gray-100">
@@ -384,7 +369,6 @@
         </main>
     </div>
 
-    <!-- HISTORY MODAL -->
     <div id="historyModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center z-50">
         <div class="bg-white rounded-xl shadow-2xl w-[500px] max-w-full m-4 overflow-hidden">
             <div class="bg-gray-800 p-4 text-white flex justify-between items-center">
@@ -394,14 +378,37 @@
             <div class="p-6 max-h-[60vh] overflow-y-auto">
                 <h4 id="historyItemName" class="font-bold text-blue-600 text-xl mb-4 text-center"></h4>
                 <ul id="historyList" class="space-y-4 relative border-l-2 border-gray-200 ml-3">
-                    <!-- History injected here -->
-                </ul>
+                    </ul>
                 <p id="historyEmpty" class="text-center text-gray-500 hidden">No movement history available for this item.</p>
             </div>
         </div>
     </div>
 
-    <!-- App Logic -->
+    <div id="moveItemModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-[400px] max-w-full m-4 overflow-hidden">
+            <div class="bg-blue-600 p-4 text-white flex justify-between items-center">
+                <h3 class="font-bold text-lg"><i class="fas fa-truck mr-2"></i>Move Item Location</h3>
+                <button onclick="closeMoveModal()" class="text-blue-100 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-gray-500 mb-4">Moving Item: <span id="moveModalItemID" class="font-bold text-gray-800 text-lg"></span></p>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">New Location / Site</label>
+                        <input type="text" id="moveNewLocation" class="mt-1 w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g. Kottawa Site">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Date of Movement</label>
+                        <input type="date" id="moveDate" class="mt-1 w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button onclick="submitMoveItem()" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-700 transition">
+                        Update Location
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="app.js"></script>
     <script>
         function switchTab(tabId) {
